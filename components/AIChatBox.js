@@ -1,46 +1,51 @@
+// components/AIChatBox.js
 import { useState } from 'react';
 
 export default function AIChatBox() {
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
+  async function handleSubmit() {
+    if (!prompt.trim()) return;
+    setLoading(true);
     setError('');
     setResponse('');
+
     try {
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt })
       });
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Error ${res.status}`);
-      }
-
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
       setResponse(data.result);
     } catch (err) {
       setError(err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
   return (
     <div>
       <textarea
         value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
+        onChange={e => setPrompt(e.target.value)}
         rows={4}
         style={{ width: '100%' }}
-        placeholder="Type your prompt here..."
+        placeholder="Say something to the AI..."
       />
-      <button onClick={handleSubmit} style={{ marginTop: '0.5rem' }}>
-        Send to AI
+      <button onClick={handleSubmit} disabled={loading} style={{ marginTop: '0.5rem' }}>
+        {loading ? 'Thinking…' : 'Send to AI'}
       </button>
-      <div style={{ marginTop: '1rem' }}>
-        {response && <p><strong>AI Response:</strong> {response}</p>}
+
+      <div style={{ marginTop: '1rem', whiteSpace: 'pre-wrap' }}>
+        {response && <p><strong>AI:</strong> {response}</p>}
         {error && <p style={{ color: 'red' }}>{error}</p>}
       </div>
     </div>
